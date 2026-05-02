@@ -33,7 +33,7 @@
               class="w-12 h-12 rounded-xl flex items-center justify-center"
               :style="{ backgroundColor: wallet.color + '20' }"
             >
-              <LucideIcon :name="getWalletIcon(wallet.type)" size="24" :style="{ color: wallet.color }" />
+              <LucideIcon :name="wallet.icon || getWalletIcon(wallet.type)" size="24" :style="{ color: wallet.color }" />
             </div>
             <div>
               <h3 class="font-semibold text-gray-900">{{ wallet.name }}</h3>
@@ -133,6 +133,20 @@
                 </div>
               </div>
 
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ editingWallet ? 'Balance' : 'Initial Balance' }}</label>
+                <input 
+                  v-model.number="form.balance" 
+                  type="number" 
+                  step="0.01" 
+                  class="input-field" 
+                  placeholder="0.00" 
+                />
+                <p class="text-xs text-gray-500 mt-1" v-if="editingWallet">
+                  Warning: Changing balance directly does not create transaction records.
+                </p>
+              </div>
+
               <div v-if="!editingWallet">
                 <label class="flex items-center gap-2">
                   <input v-model="form.is_default" type="checkbox" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
@@ -197,6 +211,7 @@ const form = reactive({
   type: 'cash',
   icon: 'wallet',
   color: '#3b82f6',
+  balance: 0,
   is_default: false,
 })
 
@@ -244,6 +259,7 @@ const openAddModal = () => {
   form.type = 'cash'
   form.icon = 'wallet'
   form.color = '#3b82f6'
+  form.balance = 0
   form.is_default = wallets.value.length === 0
   formError.value = ''
   showModal.value = true
@@ -255,6 +271,7 @@ const openEditModal = (wallet) => {
   form.type = wallet.type
   form.icon = wallet.icon
   form.color = wallet.color
+  form.balance = wallet.balance
   form.is_default = wallet.is_default
   formError.value = ''
   showModal.value = true
@@ -271,6 +288,7 @@ const handleSubmit = async () => {
         type: form.type,
         icon: form.icon,
         color: form.color,
+        balance: form.balance,
       })
     } else {
       await createWallet({
@@ -278,6 +296,7 @@ const handleSubmit = async () => {
         type: form.type,
         icon: form.icon,
         color: form.color,
+        balance: form.balance,
         is_default: form.is_default,
       })
     }

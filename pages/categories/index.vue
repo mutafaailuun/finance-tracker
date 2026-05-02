@@ -35,10 +35,15 @@
       >
         <div class="flex items-center gap-3">
           <div
-            class="w-10 h-10 rounded-full flex items-center justify-center"
+            class="w-10 h-10 rounded-full flex items-center justify-center text-xl"
             :style="{ backgroundColor: cat.color + '20' }"
           >
-            <LucideIcon :name="getCategoryIcon(cat.icon)" size="20" />
+            <template v-if="isEmoji(cat.icon)">
+              {{ cat.icon }}
+            </template>
+            <template v-else>
+              <LucideIcon :name="getCategoryIcon(cat.icon)" size="20" />
+            </template>
           </div>
           <span class="font-medium text-gray-900">{{ cat.name }}</span>
         </div>
@@ -93,7 +98,18 @@
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Icon</label>
-                <div class="grid grid-cols-4 gap-2">
+                <div class="mb-3">
+                  <label class="block text-xs text-gray-500 mb-1">Or use emoji from keyboard:</label>
+                  <input 
+                    v-model="form.icon" 
+                    type="text" 
+                    class="input-field text-2xl text-center py-1"
+                    placeholder="🍔"
+                    maxlength="2"
+                  />
+                </div>
+                <label class="block text-xs text-gray-500 mb-1">Or choose from icons:</label>
+                <div class="grid grid-cols-5 gap-2">
                   <button
                     v-for="(iconName, key) in iconOptions"
                     :key="key"
@@ -158,6 +174,8 @@
 </template>
 
 <script setup>
+import { isEmoji, getCategoryIcon } from '~/composables/useUtils'
+
 definePageMeta({ middleware: 'auth' })
 
 const { getCategories, createCategory, updateCategory, deleteCategory, seedDefaultCategories } = useSupabase()

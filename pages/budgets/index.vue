@@ -24,7 +24,14 @@
       >
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-2">
-            <LucideIcon :name="getCategoryIcon(budget.categories?.icon || 'wallet')" size="24" />
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-xl bg-gray-100">
+              <template v-if="isEmoji(budget.icon)">
+                {{ budget.icon }}
+              </template>
+              <template v-else>
+                <LucideIcon :name="budget.icon || getCategoryIcon(budget.categories?.icon) || 'wallet'" size="20" />
+              </template>
+            </div>
             <div>
               <h3 class="font-medium text-gray-900">{{ budget.categories?.name }}</h3>
               <p class="text-xs text-gray-400">{{ getMonthName(budget.month) }}</p>
@@ -91,7 +98,7 @@
             <form @submit.prevent="handleSubmit" class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <select v-model="form.category_id" required class="input-field" :disabled="!!editingBudget">
+                <select v-model="form.category_id" required class="input-field">
                   <option value="">Select a category</option>
                   <option
                     v-for="cat in expenseCategories"
@@ -101,6 +108,34 @@
                     {{ cat.name }}
                   </option>
                 </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Icon (Emoji atau Pilih)</label>
+                <div class="space-y-3">
+                  <!-- Emoji Input -->
+                  <input 
+                    v-model="form.icon" 
+                    type="text" 
+                    class="input-field" 
+                    placeholder="Contoh: 🍔, 🚗, 🛍️"
+                    maxlength="2"
+                  />
+                  <!-- Emoji Preset Grid -->
+                  <div class="grid grid-cols-8 gap-2">
+                    <button
+                      v-for="emoji in commonEmojis"
+                      :key="emoji"
+                      type="button"
+                      @click="form.icon = emoji"
+                      class="p-2 rounded-lg text-xl hover:bg-gray-100 transition-colors"
+                      :class="form.icon === emoji ? 'bg-primary-50 ring-2 ring-primary-500' : ''"
+                    >
+                      {{ emoji }}
+                    </button>
+                  </div>
+                  <p class="text-xs text-gray-500">Klik emoji atau ketik emoji lain</p>
+                </div>
               </div>
 
               <div>
@@ -144,6 +179,8 @@
 </template>
 
 <script setup>
+import { isEmoji, getCategoryIcon } from '~/composables/useUtils'
+
 definePageMeta({ middleware: 'auth' })
 
 const { getCategories, getBudgets, getSpendingByCategory, createBudget, updateBudget, deleteBudget } = useSupabase()
@@ -162,7 +199,16 @@ const saving = ref(false)
 const form = reactive({
   category_id: '',
   amount: null,
+  icon: '',
 })
+
+// Common emojis for budgets
+const commonEmojis = [
+  '🍔', '🚗', '🛍️', '🎬', '🏥', '📚', '📄', '💰',
+  '📈', '🎁', '✈️', '🏠', '📌', '💪', '☕', '🍕',
+  '🏋️', '💊', '🎮', '👕', '📱', '⚡', '💧', '🏦',
+  '💳', '💵', '🪙', '📺', '🎵', '🏃', '🚲', '🚌'
+]
 
 const expenseCategories = computed(() =>
   categories.value.filter((c) => c.type === 'expense')
@@ -189,6 +235,7 @@ const openAddModal = () => {
   editingBudget.value = null
   form.category_id = ''
   form.amount = null
+  form.icon = ''
   formError.value = ''
   showModal.value = true
 }
@@ -197,22 +244,28 @@ const openEditModal = (budget) => {
   editingBudget.value = budget
   form.category_id = budget.category_id
   form.amount = budget.amount
+  form.icon = budget.icon || ''
   formError.value = ''
   showModal.value = true
 }
 
-const handleSubmit = async () => {
+  const handleSubmit = async () => {
   saving.value = true
   formError.value = ''
 
   try {
     if (editingBudget.value) {
-      await updateBudget(editingBudget.value.id, { amount: form.amount })
+      await updateBudget(editingBudget.value.id, { 
+        category_id: form.category_id,
+        amount: form.amount,
+        icon: form.icon || null
+      })
     } else {
       await createBudget({
         category_id: form.category_id,
         amount: form.amount,
         month: currentMonth.value,
+        icon: form.icon || null
       })
     }
 

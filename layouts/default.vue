@@ -141,8 +141,73 @@
             <LucideIcon :name="item.icon" size="20" />
             <span class="text-[9px] font-medium mt-0.5">{{ item.shortName }}</span>
           </NuxtLink>
+
+          <!-- More Menu Button -->
+          <button
+            @click="showMoreMenu = true"
+            class="flex flex-col items-center justify-center py-2 px-1 min-w-[52px] rounded-xl transition-all"
+            :class="isMoreMenuActive ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'"
+          >
+            <LucideIcon name="menu" size="20" />
+            <span class="text-[9px] font-medium mt-0.5">More</span>
+          </button>
         </div>
       </nav>
+
+      <!-- More Menu Modal (Mobile) -->
+      <Teleport to="body">
+        <div v-if="showMoreMenu" class="fixed inset-0 z-50 md:hidden">
+          <!-- Backdrop -->
+          <div 
+            class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+            @click="showMoreMenu = false"
+          />
+          
+          <!-- Menu Panel -->
+          <div class="absolute bottom-20 left-4 right-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-gray-100">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Menu</h3>
+                <button 
+                  @click="showMoreMenu = false"
+                  class="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <LucideIcon name="x" size="20" class="text-gray-500" />
+                </button>
+              </div>
+            </div>
+            
+            <div class="p-2 max-h-[60vh] overflow-y-auto">
+              <div class="grid grid-cols-3 gap-2">
+                <NuxtLink
+                  v-for="item in moreMenuItems"
+                  :key="item.name"
+                  :to="item.href"
+                  @click="showMoreMenu = false"
+                  class="flex flex-col items-center justify-center p-4 rounded-xl transition-all"
+                  :class="isActiveRoute(item.href)
+                    ? 'bg-primary-50 text-primary-600'
+                    : 'text-gray-600 hover:bg-gray-50'"
+                >
+                  <LucideIcon :name="item.icon" size="24" />
+                  <span class="text-xs font-medium mt-2 text-center">{{ item.name }}</span>
+                </NuxtLink>
+              </div>
+              
+              <!-- Sign Out Button -->
+              <div class="mt-4 pt-4 border-t border-gray-100">
+                <button
+                  @click="handleSignOutFromMenu"
+                  class="flex items-center justify-center w-full gap-2 p-3 rounded-xl text-red-600 hover:bg-red-50 transition-all"
+                >
+                  <LucideIcon name="logout" size="20" />
+                  <span class="text-sm font-medium">Sign Out</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Teleport>
     </div>
   </div>
 </template>
@@ -152,6 +217,8 @@ const route = useRoute()
 const router = useRouter()
 const supabase = useSupabaseClient()
 
+const showMoreMenu = ref(false)
+
 // Split navigation for mobile with center AI button
 const leftNavigation = [
   { name: 'Dashboard', shortName: 'Home', href: '/', icon: 'dashboard' },
@@ -160,7 +227,17 @@ const leftNavigation = [
 
 const rightNavigation = [
   { name: 'Wallets', shortName: 'Wallets', href: '/wallets', icon: 'wallet' },
-  { name: 'Settings', shortName: 'More', href: '/settings', icon: 'menu' },
+]
+
+// All menu items for "More" section
+const moreMenuItems = [
+  { name: 'Dashboard', href: '/', icon: 'dashboard' },
+  { name: 'Transactions', href: '/transactions', icon: 'transactions' },
+  { name: 'Budgets', href: '/budgets', icon: 'budgets' },
+  { name: 'Categories', href: '/categories', icon: 'categories' },
+  { name: 'Wallets', href: '/wallets', icon: 'wallet' },
+  { name: 'AI Assistant', href: '/ai', icon: 'bot' },
+  { name: 'Settings', href: '/settings', icon: 'settings' },
 ]
 
 const mainNavigation = [
@@ -182,9 +259,21 @@ const isActiveRoute = (href) => {
   return route.path === href || route.path.startsWith(href + '/')
 }
 
+const isMoreMenuActive = computed(() => {
+  return moreMenuItems.some(item => isActiveRoute(item.href)) && 
+         !leftNavigation.some(item => isActiveRoute(item.href)) &&
+         !rightNavigation.some(item => isActiveRoute(item.href)) &&
+         !isActiveRoute('/ai')
+})
+
 const handleSignOut = async () => {
   await supabase.auth.signOut()
   router.push('/auth/login')
+}
+
+const handleSignOutFromMenu = async () => {
+  showMoreMenu.value = false
+  await handleSignOut()
 }
 </script>
 

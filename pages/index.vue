@@ -76,7 +76,7 @@
               class="w-8 h-8 rounded-lg flex items-center justify-center"
               :style="{ backgroundColor: wallet.color + '25' }"
             >
-              <LucideIcon :name="getCategoryIcon(wallet.icon)" size="16" :style="{ color: wallet.color }" />
+              <LucideIcon :name="wallet.icon || 'wallet'" size="16" :style="{ color: wallet.color }" />
             </div>
             <span v-if="wallet.is_default" class="text-[9px] px-1.5 py-0.5 rounded-full font-medium" :style="{ backgroundColor: wallet.color + '30', color: wallet.color }">
               Default
@@ -109,42 +109,21 @@
         <p v-else class="text-gray-400 text-sm text-center py-14">No expenses this month</p>
       </div>
 
-      <!-- Budget Progress -->
+      <!-- Yearly Income vs Expense Chart -->
       <div class="card">
-        <h2 class="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <LucideIcon name="budgets" size="16" class="text-primary-500" />
-          Budget Progress
-        </h2>
-        <div v-if="budgets.length > 0" class="space-y-4">
-          <div v-for="budget in budgets" :key="budget.id">
-            <div class="flex justify-between text-sm mb-1.5">
-              <span class="text-gray-700 font-medium">{{ budget.categories?.name }}</span>
-              <span class="text-gray-500 text-xs">
-                {{ formatCurrency(budget.spent, currency) }}
-                <span class="text-gray-300 mx-1">/</span>
-                {{ formatCurrency(budget.amount, currency) }}
-              </span>
-            </div>
-            <div class="w-full bg-gray-100 rounded-full h-2">
-              <div
-                class="h-2 rounded-full transition-all duration-700"
-                :class="budget.spent > budget.amount
-                  ? 'bg-gradient-to-r from-rose-400 to-rose-600'
-                  : 'bg-gradient-to-r from-primary-400 to-primary-600'"
-                :style="{ width: Math.min((budget.spent / budget.amount) * 100, 100) + '%' }"
-              />
-            </div>
-            <div class="flex justify-end mt-1">
-              <span
-                class="text-xs font-medium"
-                :class="budget.spent > budget.amount ? 'text-rose-500' : 'text-gray-400'"
-              >
-                {{ Math.round((budget.spent / budget.amount) * 100) }}%
-              </span>
-            </div>
-          </div>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <LucideIcon name="bar-chart" size="16" class="text-primary-500" />
+            Yearly Overview
+          </h2>
+          <select v-model="selectedYear" @change="loadYearlyData" class="input-field w-auto text-sm py-1">
+            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+          </select>
         </div>
-        <p v-else class="text-gray-400 text-sm text-center py-14">No budgets set for this month</p>
+        <div v-if="yearlyData.length > 0" class="h-64">
+          <canvas ref="barChartRef"></canvas>
+        </div>
+        <p v-else class="text-gray-400 text-sm text-center py-14">No data available</p>
       </div>
     </div>
 
@@ -211,14 +190,15 @@
 </template>
 
 <script setup>
-import { Chart, ArcElement, Tooltip, Legend } from 'chart.js'
+import { Chart, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
 import { Doughnut } from 'vue-chartjs'
+import { getCategoryIcon } from '~/composables/useUtils'
 
-Chart.register(ArcElement, Tooltip, Legend)
+Chart.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 
 definePageMeta({ middleware: 'auth' })
 
-const { getMonthlySummary, getSpendingByCategory, getBudgets, getTransactions, getWallets, seedDefaultCategories } = useSupabase()
+const { getMonthlySummary, getSpendingByCategory, getBudgets, getTransactions, getWallets, seedDefaultCategories, getYearlyMonthlyData } = useSupabase()
 const { currency, getPreferences } = useUserPreferences()
 
 const currentMonth = ref(getCurrentMonth())
@@ -229,7 +209,21 @@ const budgets = ref([])
 const wallets = ref([])
 const recentTransactions = ref([])
 const pieChartRef = ref(null)
-let chartInstance = null
+const barChartRef = ref(null)
+let pieChartInstance = null
+let barChartInstance = null
+const yearlyData = ref([])
+
+// Year selector for chart
+const currentYear = new Date().getFullYear()
+const selectedYear = ref(currentYear)
+const availableYears = computed(() => {
+  const years = []
+  for (let y = currentYear - 5; y <= currentYear + 1; y++) {
+    years.push(y)
+  }
+  return years
+})
 
 onMounted(async () => {
   getPreferences()
@@ -238,12 +232,12 @@ onMounted(async () => {
 })
 
 const loadData = async () => {
-  const [summaryData, spendingData, budgetsData, txData, walletsData] = await Promise.all([
+  const [summaryData, spendingData, txData, walletsData, yearly] = await Promise.all([
     getMonthlySummary(currentMonth.value),
     getSpendingByCategory(currentMonth.value),
-    getBudgets(currentMonth.value),
     getTransactions({ month: currentMonth.value }),
     getWallets(),
+    getYearlyMonthlyData(selectedYear.value),
   ])
 
   summary.income = summaryData.income
@@ -251,6 +245,7 @@ const loadData = async () => {
   summary.balance = summaryData.balance
   wallets.value = walletsData
   recentTransactions.value = txData.slice(0, 5)
+  yearlyData.value = yearly
 
   const categoryMap = new Map()
   spendingData.forEach((item) => {
@@ -262,21 +257,25 @@ const loadData = async () => {
   })
   spendingByCategory.value = Array.from(categoryMap.values())
 
-  budgets.value = budgetsData.map((b) => {
-    const spent = spendingData
-      .filter((s) => s.categories && s.categories.name === b.categories?.name)
-      .reduce((sum, s) => sum + Number(s.amount), 0)
-    return { ...b, spent }
+  nextTick(() => {
+    renderPieChart()
+    renderBarChart()
   })
-
-  nextTick(() => renderChart())
 }
 
-const renderChart = () => {
-  if (chartInstance) chartInstance.destroy()
+const loadYearlyData = async () => {
+  const yearly = await getYearlyMonthlyData(selectedYear.value)
+  yearlyData.value = yearly
+  nextTick(() => {
+    renderBarChart()
+  })
+}
+
+const renderPieChart = () => {
+  if (pieChartInstance) pieChartInstance.destroy()
   if (!pieChartRef.value || spendingByCategory.value.length === 0) return
 
-  chartInstance = new Chart(pieChartRef.value, {
+  pieChartInstance = new Chart(pieChartRef.value, {
     type: 'doughnut',
     data: {
       labels: spendingByCategory.value.map((c) => c.name),
@@ -297,6 +296,66 @@ const renderChart = () => {
         legend: {
           position: 'right',
           labels: { padding: 16, usePointStyle: true, pointStyleWidth: 8, font: { size: 12 } },
+        },
+      },
+    },
+  })
+}
+
+const renderBarChart = () => {
+  if (barChartInstance) barChartInstance.destroy()
+  if (!barChartRef.value || yearlyData.value.length === 0) return
+
+  barChartInstance = new Chart(barChartRef.value, {
+    type: 'bar',
+    data: {
+      labels: yearlyData.value.map((d) => d.label),
+      datasets: [
+        {
+          label: 'Income',
+          data: yearlyData.value.map((d) => d.income),
+          backgroundColor: '#10b981',
+          borderRadius: 4,
+        },
+        {
+          label: 'Expense',
+          data: yearlyData.value.map((d) => d.expense),
+          backgroundColor: '#ef4444',
+          borderRadius: 4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          stacked: false,
+          grid: {
+            display: false,
+          },
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: '#f3f4f6',
+          },
+        },
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              return `${context.dataset.label}: ${formatCurrency(context.raw, currency.value)}`
+            },
+          },
         },
       },
     },

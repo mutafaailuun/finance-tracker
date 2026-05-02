@@ -27,25 +27,7 @@ export const getMonthName = (month: string): string => {
 }
 
 export const getCategoryIcon = (icon: string): string => {
-  const icons: Record<string, string> = {
-    wallet: 'wallet',
-    food: 'food',
-    transport: 'transport',
-    shopping: 'shopping',
-    entertainment: 'entertainment',
-    health: 'health',
-    education: 'education',
-    bills: 'bills',
-    salary: 'salary',
-    investment: 'investment',
-    gift: 'gift',
-    travel: 'travel',
-    home: 'home',
-    other: 'other',
-    fitness: 'fitness',
-    coffee: 'coffee',
-  }
-  return icons[icon] || icons.wallet
+  return icon || 'wallet'
 }
 
 export const generateMonths = (count = 12): string[] => {
@@ -56,4 +38,10 @@ export const generateMonths = (count = 12): string[] => {
     months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
   return months
+}
+
+export const isEmoji = (str: string): boolean => {
+  if (!str) return false
+  const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)$/u
+  return emojiRegex.test(str)
 }

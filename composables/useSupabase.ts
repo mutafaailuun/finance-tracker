@@ -3,7 +3,7 @@ export const useSupabase = () => {
   const user = useSupabaseUser()
 
   const getCategories = async () => {
-    const { data } = await client.from('categories').select('*').order('name')
+    const { data } = await client.from('categories').select('*').eq('user_id', user.value?.id).order('name')
     return data || []
   }
 
@@ -63,6 +63,7 @@ export const useSupabase = () => {
     type: 'cash' | 'bank' | 'ewallet' | 'savings' | 'other'
     color: string
     icon: string
+    balance: number
     is_default: boolean
   }>) => {
     const { error } = await client.from('wallets').update(updates).eq('id', id)
@@ -147,6 +148,7 @@ export const useSupabase = () => {
     category_id: string
     amount: number
     month: string
+    icon?: string
   }) => {
     const { data, error } = await client.from('budgets').insert({
       ...budget,
@@ -156,7 +158,7 @@ export const useSupabase = () => {
     return data
   }
 
-  const updateBudget = async (id: string, updates: { amount: number }) => {
+  const updateBudget = async (id: string, updates: { amount: number, category_id?: string, icon?: string }) => {
     const { error } = await client.from('budgets').update(updates).eq('id', id)
     if (error) throw error
   }
@@ -196,6 +198,44 @@ export const useSupabase = () => {
       .lte('date', end)
 
     return data || []
+  }
+
+  // Get monthly income and expense for a specific year
+  const getYearlyMonthlyData = async (year: number) => {
+    const months = []
+    
+    // Generate all 12 months for the specified year
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(year, i, 1)
+      months.push({
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        label: d.toLocaleDateString('en-US', { month: 'short' }),
+        start: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`,
+        end: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-31`,
+      })
+    }
+
+    const monthlyData = await Promise.all(
+      months.map(async (m) => {
+        const { data: transactions } = await client
+          .from('transactions')
+          .select('type, amount')
+          .gte('date', m.start)
+          .lte('date', m.end)
+
+        const income = transactions?.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0) || 0
+        const expense = transactions?.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0) || 0
+
+        return {
+          label: m.label,
+          income,
+          expense,
+        }
+      })
+    )
+
+    return monthlyData
   }
 
   // Seed default categories - adds missing categories for all users
@@ -318,5 +358,6 @@ export const useSupabase = () => {
     deleteBudget,
     getMonthlySummary,
     getSpendingByCategory,
+    getYearlyMonthlyData,
   }
 }
