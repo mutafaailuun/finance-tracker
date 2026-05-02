@@ -44,11 +44,13 @@ User WhatsApp → Fonnte API → Supabase Edge Function (Webhook)
 
 1. Di dashboard Fonnte, pergi ke menu **"Webhook"**
 2. Masukkan URL webhook:
+
    ```
-   https://[PROJECT_REF].supabase.co/functions/v1/fonnte-webhook
+   https://chezkeuqkzbqwzgoprdn.supabase.co/functions/v1/fonnte-webhook
    ```
-   
-   Ganti `[PROJECT_REF]` dengan project reference Supabase Anda.
+
+   Ganti `chezkeuqkzbqwzgoprdn` dengan project reference Supabase Anda.
+
 3. Pilih method: **POST**
 4. Aktifkan webhook
 5. Save
@@ -59,9 +61,9 @@ Pastikan format webhook di Fonnte menggunakan **Form Data** atau **JSON** dengan
 
 ```json
 {
-  "sender": "6281234567890",
-  "message": "Beli nasi goreng 25k",
-  "name": "Nama Kontak"
+	"sender": "6281234567890",
+	"message": "Beli nasi goreng 25k",
+	"name": "Nama Kontak"
 }
 ```
 
@@ -79,7 +81,7 @@ npm install -g supabase
 supabase login
 
 # Link project
-supabase link --project-ref [PROJECT_REF]
+supabase link --project-ref chezkeuqkzbqwzgoprdn
 
 # Deploy function
 supabase functions deploy fonnte-webhook
@@ -92,7 +94,7 @@ Di dashboard Supabase, pergi ke **Project Settings > Functions**:
 Tambahkan secrets:
 
 ```bash
-SUPABASE_URL=https://[PROJECT_REF].supabase.co
+SUPABASE_URL=https://chezkeuqkzbqwzgoprdn.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=[SERVICE_ROLE_KEY]
 OPENAI_API_KEY=[OPENAI_API_KEY]
 ```
@@ -117,7 +119,7 @@ supabase db push
 Tambahkan kolom untuk menyimpan AI settings:
 
 ```sql
-ALTER TABLE user_preferences 
+ALTER TABLE user_preferences
 ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(20) DEFAULT 'openai',
 ADD COLUMN IF NOT EXISTS ai_api_key TEXT;
 ```
@@ -148,11 +150,13 @@ ADD COLUMN IF NOT EXISTS ai_api_key TEXT;
 ### Contoh Interaksi:
 
 **User:**
+
 ```
 Beli kopi dan roti 45k
 ```
 
 **Bot:**
+
 ```
 💸 Pengeluaran Tercatat!
 
@@ -200,9 +204,9 @@ Beli kopi dan roti 45k
 
 2. **Cek Database:**
    ```sql
-   SELECT * FROM transactions 
-   WHERE source = 'whatsapp' 
-   ORDER BY created_at DESC 
+   SELECT * FROM transactions
+   WHERE source = 'whatsapp'
+   ORDER BY created_at DESC
    LIMIT 5;
    ```
 
@@ -211,13 +215,13 @@ Beli kopi dan roti 45k
 1. **Format Nomor:**
    - Fonnte kirim: `6281234567890`
    - User daftar: `081234567890`
-   
+
    Solusi: Gunakan format internasional tanpa + (628xxx)
 
 2. **Update mapping:**
    ```sql
-   UPDATE user_phone_mappings 
-   SET phone_number = '6281234567890' 
+   UPDATE user_phone_mappings
+   SET phone_number = '6281234567890'
    WHERE phone_number = '081234567890';
    ```
 
@@ -234,11 +238,11 @@ supabase functions logs fonnte-webhook --tail
 
 ```sql
 -- Total transaksi via WhatsApp
-SELECT 
+SELECT
   COUNT(*) as total_transactions,
   SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
   SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expense
-FROM transactions 
+FROM transactions
 WHERE source = 'whatsapp'
 AND user_id = '[USER_ID]';
 ```
@@ -271,12 +275,13 @@ AND user_id = '[USER_ID]';
 ## 📞 Support
 
 Jika ada masalah:
+
 1. Cek logs di Supabase dashboard
 2. Cek Fonnte dashboard status
 3. Test webhook menggunakan curl:
 
 ```bash
-curl -X POST https://[PROJECT_REF].supabase.co/functions/v1/fonnte-webhook \
+curl -X POST https://chezkeuqkzbqwzgoprdn.supabase.co/functions/v1/fonnte-webhook \
   -H "Authorization: Bearer [ANON_KEY]" \
   -H "Content-Type: application/json" \
   -d '{

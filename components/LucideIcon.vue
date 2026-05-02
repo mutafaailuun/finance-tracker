@@ -114,6 +114,7 @@ import {
   ScanLine,
   MessageCircle,
   Key,
+  Command,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -256,6 +257,7 @@ const iconMap = {
   'scan-line': ScanLine,
   'message-circle': MessageCircle,
   'key': Key,
+  'command': Command,
 }
 
 const iconComponent = computed(() => {

@@ -133,6 +133,91 @@
           </ul>
         </div>
       </div>
+
+      <!-- iOS Shortcuts API Key -->
+      <div class="card">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <LucideIcon name="command" size="20" />
+          iOS Shortcuts
+        </h2>
+        
+        <div class="space-y-4">
+          <p class="text-sm text-gray-600">
+            Gunakan API Key ini untuk setup iOS Shortcuts. Dengan Shortcuts, kamu bisa:
+          </p>
+          <ul class="text-sm text-gray-600 list-disc list-inside space-y-1">
+            <li>"Hey Siri, catat pengeluaran"</li>
+            <li>Widget di home screen</li>
+            <li>Share dari app lain</li>
+            <li>Back tap trigger</li>
+          </ul>
+
+          <div v-if="!shortcutApiKey" class="p-4 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-600 mb-3">
+              Kamu belum memiliki API Key untuk iOS Shortcuts.
+            </p>
+            <button 
+              @click="generateShortcutKey"
+              :disabled="generatingKey"
+              class="btn-primary w-full"
+            >
+              <LucideIcon v-if="generatingKey" name="loader" size="18" class="mr-2 animate-spin" />
+              {{ generatingKey ? 'Generating...' : 'Generate API Key' }}
+            </button>
+          </div>
+
+          <div v-else class="space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Your API Key</label>
+              <div class="flex gap-2">
+                <input 
+                  :value="shortcutApiKey"
+                  readonly
+                  class="input-field bg-gray-100 text-gray-600"
+                  type="password"
+                />
+                <button 
+                  @click="showShortcutKey = !showShortcutKey"
+                  class="btn-secondary"
+                >
+                  <LucideIcon :name="showShortcutKey ? 'eye-off' : 'eye'" size="16" />
+                </button>
+                <button 
+                  @click="copyShortcutKey"
+                  class="btn-secondary"
+                >
+                  <LucideIcon name="copy" size="16" />
+                </button>
+              </div>
+            </div>
+
+            <div class="p-3 bg-blue-50 rounded-lg">
+              <p class="text-xs text-blue-700 font-medium mb-2">Endpoint URL:</p>
+              <code class="text-xs text-blue-900 break-all">
+                {{ shortcutEndpoint }}
+              </code>
+            </div>
+
+            <div class="flex gap-2">
+              <NuxtLink to="/docs/IOS_SHORTCUTS_SETUP.md" target="_blank" class="btn-secondary flex-1 text-center text-sm">
+                <LucideIcon name="book-open" size="16" class="mr-1 inline" />
+                Panduan Setup
+              </NuxtLink>
+              <button 
+                @click="regenerateKey"
+                :disabled="generatingKey"
+                class="btn-danger flex-1 text-sm"
+              >
+                Regenerate
+              </button>
+            </div>
+          </div>
+
+          <div v-if="keySuccess" class="text-sm text-green-600 bg-green-50 p-3 rounded-lg">
+            {{ keySuccess }}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -142,6 +227,8 @@ import { formatCurrency } from '~/composables/useUtils'
 
 definePageMeta({ middleware: 'auth' })
 
+const supabase = useSupabaseClient()
+const user = useSupabaseUser()
 const { preferences, currency, getPreferences, updatePreferences } = useUserPreferences()
 
 // Currency form
@@ -244,4 +331,69 @@ const saveAIConfig = () => {
 
   savingAI.value = false
 }
+
+// iOS Shortcuts
+const shortcutApiKey = ref('')
+const showShortcutKey = ref(false)
+const generatingKey = ref(false)
+const keySuccess = ref('')
+const shortcutEndpoint = computed(() => {
+  // Get project ref from Supabase URL
+  const projectRef = 'your-project-ref' // Replace with actual
+  return `https://${projectRef}.supabase.co/functions/v1/ios-shortcut`
+})
+
+const loadShortcutKey = async () => {
+  const { data } = await supabase
+    .from('user_preferences')
+    .select('shortcut_api_key')
+    .single()
+  
+  if (data?.shortcut_api_key) {
+    shortcutApiKey.value = data.shortcut_api_key
+  }
+}
+
+const generateShortcutKey = async () => {
+  generatingKey.value = true
+  keySuccess.value = ''
+  
+  try {
+    // Generate random key
+    const key = 'ft_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+    
+    const { error } = await supabase
+      .from('user_preferences')
+      .upsert({
+        user_id: user.value.id,
+        shortcut_api_key: key
+      })
+    
+    if (error) throw error
+    
+    shortcutApiKey.value = key
+    keySuccess.value = 'API Key berhasil dibuat!'
+    setTimeout(() => keySuccess.value = '', 3000)
+  } catch (e) {
+    keySuccess.value = 'Gagal membuat API Key: ' + e.message
+  }
+  
+  generatingKey.value = false
+}
+
+const regenerateKey = async () => {
+  if (!confirm('Yakin ingin membuat API Key baru? Key lama tidak bisa digunakan lagi.')) return
+  await generateShortcutKey()
+}
+
+const copyShortcutKey = () => {
+  navigator.clipboard.writeText(shortcutApiKey.value)
+  keySuccess.value = 'API Key disalin!'
+  setTimeout(() => keySuccess.value = '', 2000)
+}
+
+// Load shortcut key on mount
+onMounted(async () => {
+  await loadShortcutKey()
+})
 </script>
