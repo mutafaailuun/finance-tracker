@@ -111,6 +111,7 @@ import {
   Truck,
   MapPin,
   Navigation,
+  ScanLine,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -250,6 +251,8 @@ const iconMap = {
   'delivery': Truck,
   'location': MapPin,
   'navigation': Navigation,
+  'scan-line': ScanLine,
+  'camera': Camera,
 }
 
 const iconComponent = computed(() => {

@@ -237,6 +237,7 @@ const moreMenuItems = [
   { name: 'Categories', href: '/categories', icon: 'categories' },
   { name: 'Wallets', href: '/wallets', icon: 'wallet' },
   { name: 'AI Assistant', href: '/ai', icon: 'bot' },
+  { name: 'Scanner', href: '/ocr', icon: 'scan-line' },
   { name: 'Settings', href: '/settings', icon: 'settings' },
 ]
 
@@ -246,6 +247,7 @@ const mainNavigation = [
   { name: 'Budgets', shortName: 'Budgets', href: '/budgets', icon: 'budgets' },
   { name: 'Categories', shortName: 'Categ.', href: '/categories', icon: 'categories' },
   { name: 'Wallets', shortName: 'Wallets', href: '/wallets', icon: 'wallet' },
+  { name: 'Receipt Scanner', shortName: 'Scan', href: '/ocr', icon: 'scan-line' },
 ]
 
 const secondaryNavigation = [

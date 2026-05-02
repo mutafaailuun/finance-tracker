@@ -20,8 +20,9 @@
       <div
         v-for="wallet in wallets"
         :key="wallet.id"
-        class="card relative"
+        class="card relative cursor-pointer hover:shadow-lg transition-shadow"
         :class="wallet.is_default ? 'ring-2 ring-primary-500' : ''"
+        @click="openWalletHistory(wallet)"
       >
         <div v-if="wallet.is_default" class="absolute -top-2 left-4 bg-primary-500 text-white text-xs px-2 py-0.5 rounded-full">
           Default
@@ -40,7 +41,7 @@
               <p class="text-xs text-gray-500 capitalize">{{ wallet.type }}</p>
             </div>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1" @click.stop>
             <button 
               v-if="!wallet.is_default"
               @click="setDefaultWallet(wallet)"
@@ -188,6 +189,97 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Wallet Transaction History Modal -->
+    <Teleport to="body">
+      <div v-if="historyWallet" class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center px-4 py-8">
+          <div class="fixed inset-0 bg-black/30" @click="historyWallet = null" />
+          <div class="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-10 h-10 rounded-xl flex items-center justify-center"
+                  :style="{ backgroundColor: historyWallet.color + '20' }"
+                >
+                  <LucideIcon :name="historyWallet.icon || getWalletIcon(historyWallet.type)" size="20" :style="{ color: historyWallet.color }" />
+                </div>
+                <div>
+                  <h2 class="text-lg font-semibold text-gray-900">{{ historyWallet.name }}</h2>
+                  <p class="text-sm text-gray-500">Transaction History</p>
+                </div>
+              </div>
+              <button @click="historyWallet = null" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <LucideIcon name="x" size="20" class="text-gray-500" />
+              </button>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6">
+              <!-- Summary -->
+              <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-emerald-50 rounded-xl p-4">
+                  <p class="text-xs text-emerald-600 font-medium uppercase">Income</p>
+                  <p class="text-lg font-bold text-emerald-700">{{ formatCurrency(walletStats.income, currency) }}</p>
+                </div>
+                <div class="bg-rose-50 rounded-xl p-4">
+                  <p class="text-xs text-rose-600 font-medium uppercase">Expense</p>
+                  <p class="text-lg font-bold text-rose-700">{{ formatCurrency(walletStats.expense, currency) }}</p>
+                </div>
+                <div class="bg-violet-50 rounded-xl p-4">
+                  <p class="text-xs text-violet-600 font-medium uppercase">Net</p>
+                  <p class="text-lg font-bold" :class="walletStats.net >= 0 ? 'text-violet-700' : 'text-rose-700'">
+                    {{ formatCurrency(walletStats.net, currency) }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Month Filter -->
+              <div class="flex items-center gap-3 mb-4">
+                <LucideIcon name="calendar" size="16" class="text-gray-400" />
+                <select v-model="historyMonth" @change="loadWalletHistory" class="input-field w-auto text-sm">
+                  <option v-for="m in months" :key="m" :value="m">{{ formatMonthLabel(m) }}</option>
+                </select>
+              </div>
+
+              <!-- Transactions List -->
+              <div v-if="walletTransactions.length > 0" class="space-y-3">
+                <div
+                  v-for="tx in walletTransactions"
+                  :key="tx.id"
+                  class="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors"
+                >
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                      :style="{ backgroundColor: (tx.categories?.color || '#6b7280') + '20' }"
+                    >
+                      <LucideIcon :name="tx.categories?.icon || 'tag'" size="18" :style="{ color: tx.categories?.color || '#6b7280' }" />
+                    </div>
+                    <div>
+                      <p class="font-medium text-gray-900">{{ tx.categories?.name || 'Uncategorized' }}</p>
+                      <p class="text-xs text-gray-500">{{ tx.description || 'No description' }}</p>
+                      <p class="text-xs text-gray-400">{{ formatDate(tx.date) }}</p>
+                    </div>
+                  </div>
+                  <span
+                    class="font-semibold"
+                    :class="tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'"
+                  >
+                    {{ tx.type === 'income' ? '+' : '-' }}{{ formatCurrency(tx.amount, currency) }}
+                  </span>
+                </div>
+              </div>
+              <div v-else class="text-center py-12">
+                <LucideIcon name="receipt" size="48" class="mx-auto text-gray-300 mb-3" />
+                <p class="text-gray-500">No transactions for this period</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -196,8 +288,9 @@ import { formatCurrency } from '~/composables/useUtils'
 
 definePageMeta({ middleware: 'auth' })
 
-const { getWallets, createWallet, updateWallet, deleteWallet, seedDefaultCategories } = useSupabase()
+const { getWallets, createWallet, updateWallet, deleteWallet, seedDefaultCategories, getTransactions } = useSupabase()
 const { currency, getPreferences } = useUserPreferences()
+const { getCategoryIcon, formatDate } = useUtils()
 
 const wallets = ref([])
 const showModal = ref(false)
@@ -205,6 +298,14 @@ const editingWallet = ref(null)
 const deleteTarget = ref(null)
 const formError = ref('')
 const saving = ref(false)
+
+// Wallet transaction history
+const historyWallet = ref(null)
+const walletTransactions = ref([])
+const historyMonth = ref(getCurrentMonth())
+const walletStats = reactive({ income: 0, expense: 0, net: 0 })
+
+const months = generateMonths()
 
 const form = reactive({
   name: '',
@@ -328,6 +429,59 @@ const handleDelete = async () => {
   await deleteWallet(deleteTarget.value.id)
   deleteTarget.value = null
   await loadData()
+}
+
+const openWalletHistory = async (wallet) => {
+  historyWallet.value = wallet
+  historyMonth.value = getCurrentMonth()
+  await loadWalletHistory()
+}
+
+const loadWalletHistory = async () => {
+  if (!historyWallet.value) return
+  
+  const transactions = await getTransactions({ 
+    month: historyMonth.value,
+    wallet_id: historyWallet.value.id 
+  })
+  
+  walletTransactions.value = transactions
+  
+  // Calculate stats
+  let income = 0
+  let expense = 0
+  transactions.forEach(tx => {
+    if (tx.type === 'income') {
+      income += Number(tx.amount)
+    } else {
+      expense += Number(tx.amount)
+    }
+  })
+  
+  walletStats.income = income
+  walletStats.expense = expense
+  walletStats.net = income - expense
+}
+
+const formatMonthLabel = (monthStr) => {
+  const [year, month] = monthStr.split('-')
+  const date = new Date(year, month - 1)
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
+
+function getCurrentMonth() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function generateMonths() {
+  const months = []
+  const now = new Date()
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  }
+  return months
 }
 
 onMounted(async () => {

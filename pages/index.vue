@@ -97,34 +97,34 @@
 
     <!-- Charts Section -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <!-- Spending by Category Chart -->
-      <div class="card">
-        <h2 class="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <LucideIcon name="pie-chart" size="16" class="text-primary-500" />
-          Spending by Category
-        </h2>
-        <div v-if="spendingByCategory.length > 0" class="h-64">
-          <canvas ref="pieChartRef"></canvas>
-        </div>
-        <p v-else class="text-gray-400 text-sm text-center py-14">No expenses this month</p>
-      </div>
+       <!-- Spending by Category Chart -->
+       <div class="card">
+         <h2 class="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+           <LucideIcon name="pie-chart" size="16" class="text-primary-500" />
+           Spending by Category
+         </h2>
+         <div v-if="spendingByCategory.length > 0" class="relative h-64 w-full">
+           <canvas ref="pieChartRef" style="width: 100% !important; height: 100% !important;"></canvas>
+         </div>
+         <p v-else class="text-gray-400 text-sm text-center py-14">No expenses this month</p>
+       </div>
 
-      <!-- Yearly Income vs Expense Chart -->
-      <div class="card">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-            <LucideIcon name="bar-chart" size="16" class="text-primary-500" />
-            Yearly Overview
-          </h2>
-          <select v-model="selectedYear" @change="loadYearlyData" class="input-field w-auto text-sm py-1">
-            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
-          </select>
-        </div>
-        <div v-if="yearlyData.length > 0" class="h-64">
-          <canvas ref="barChartRef"></canvas>
-        </div>
-        <p v-else class="text-gray-400 text-sm text-center py-14">No data available</p>
-      </div>
+       <!-- Yearly Income vs Expense Chart -->
+       <div class="card">
+         <div class="flex items-center justify-between mb-4">
+           <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+             <LucideIcon name="bar-chart" size="16" class="text-primary-500" />
+             Yearly Overview
+           </h2>
+           <select v-model="selectedYear" @change="loadYearlyData" class="input-field w-auto text-sm py-1">
+             <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
+           </select>
+         </div>
+         <div v-if="yearlyData.length > 0" class="relative h-64 w-full">
+           <canvas ref="barChartRef" style="width: 100% !important; height: 100% !important;"></canvas>
+         </div>
+         <p v-else class="text-gray-400 text-sm text-center py-14">No data available</p>
+       </div>
     </div>
 
     <!-- Recent Transactions -->
@@ -272,93 +272,119 @@ const loadYearlyData = async () => {
 }
 
 const renderPieChart = () => {
-  if (pieChartInstance) pieChartInstance.destroy()
+  if (pieChartInstance) {
+    pieChartInstance.destroy()
+    pieChartInstance = null
+  }
   if (!pieChartRef.value || spendingByCategory.value.length === 0) return
 
-  pieChartInstance = new Chart(pieChartRef.value, {
-    type: 'doughnut',
-    data: {
-      labels: spendingByCategory.value.map((c) => c.name),
-      datasets: [{
-        data: spendingByCategory.value.map((c) => c.amount),
-        backgroundColor: spendingByCategory.value.map((c) => c.color),
-        borderWidth: 3,
-        borderColor: '#f8fafc',
-        hoverBorderColor: '#fff',
-        hoverOffset: 6,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '65%',
-      plugins: {
-        legend: {
-          position: 'right',
-          labels: { padding: 16, usePointStyle: true, pointStyleWidth: 8, font: { size: 12 } },
+  // Fix for iOS Safari: ensure canvas has proper dimensions
+  const canvas = pieChartRef.value
+  const parent = canvas.parentElement
+  if (parent) {
+    canvas.width = parent.clientWidth
+    canvas.height = parent.clientHeight
+  }
+
+  requestAnimationFrame(() => {
+    pieChartInstance = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: spendingByCategory.value.map((c) => c.name),
+        datasets: [{
+          data: spendingByCategory.value.map((c) => c.amount),
+          backgroundColor: spendingByCategory.value.map((c) => c.color),
+          borderWidth: 3,
+          borderColor: '#f8fafc',
+          hoverBorderColor: '#fff',
+          hoverOffset: 6,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { padding: 16, usePointStyle: true, pointStyleWidth: 8, font: { size: 12 } },
+          },
         },
       },
-    },
+    })
   })
 }
 
 const renderBarChart = () => {
-  if (barChartInstance) barChartInstance.destroy()
+  if (barChartInstance) {
+    barChartInstance.destroy()
+    barChartInstance = null
+  }
   if (!barChartRef.value || yearlyData.value.length === 0) return
 
-  barChartInstance = new Chart(barChartRef.value, {
-    type: 'bar',
-    data: {
-      labels: yearlyData.value.map((d) => d.label),
-      datasets: [
-        {
-          label: 'Income',
-          data: yearlyData.value.map((d) => d.income),
-          backgroundColor: '#10b981',
-          borderRadius: 4,
-        },
-        {
-          label: 'Expense',
-          data: yearlyData.value.map((d) => d.expense),
-          backgroundColor: '#ef4444',
-          borderRadius: 4,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          stacked: false,
-          grid: {
-            display: false,
+  // Fix for iOS Safari: ensure canvas has proper dimensions
+  const canvas = barChartRef.value
+  const parent = canvas.parentElement
+  if (parent) {
+    canvas.width = parent.clientWidth
+    canvas.height = parent.clientHeight
+  }
+
+  requestAnimationFrame(() => {
+    barChartInstance = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: yearlyData.value.map((d) => d.label),
+        datasets: [
+          {
+            label: 'Income',
+            data: yearlyData.value.map((d) => d.income),
+            backgroundColor: '#10b981',
+            borderRadius: 4,
           },
-        },
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: '#f3f4f6',
+          {
+            label: 'Expense',
+            data: yearlyData.value.map((d) => d.expense),
+            backgroundColor: '#ef4444',
+            borderRadius: 4,
           },
-        },
+        ],
       },
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            usePointStyle: true,
-            padding: 20,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: false,
+            grid: {
+              display: false,
+            },
+          },
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: '#f3f4f6',
+            },
           },
         },
-        tooltip: {
-          callbacks: {
-            label: (context) => {
-              return `${context.dataset.label}: ${formatCurrency(context.raw, currency.value)}`
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 20,
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                return `${context.dataset.label}: ${formatCurrency(context.raw, currency.value)}`
+              },
             },
           },
         },
       },
-    },
+    })
   })
 }
 
