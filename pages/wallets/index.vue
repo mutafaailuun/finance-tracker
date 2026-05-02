@@ -284,13 +284,12 @@
 </template>
 
 <script setup>
-import { formatCurrency } from '~/composables/useUtils'
+import { formatCurrency, formatDate, getCategoryIcon, getCurrentMonth, generateMonths } from '~/composables/useUtils'
 
 definePageMeta({ middleware: 'auth' })
 
 const { getWallets, createWallet, updateWallet, deleteWallet, seedDefaultCategories, getTransactions } = useSupabase()
 const { currency, getPreferences } = useUserPreferences()
-const { getCategoryIcon, formatDate } = useUtils()
 
 const wallets = ref([])
 const showModal = ref(false)
@@ -467,21 +466,6 @@ const formatMonthLabel = (monthStr) => {
   const [year, month] = monthStr.split('-')
   const date = new Date(year, month - 1)
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-}
-
-function getCurrentMonth() {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-}
-
-function generateMonths() {
-  const months = []
-  const now = new Date()
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
-  }
-  return months
 }
 
 onMounted(async () => {

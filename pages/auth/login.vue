@@ -37,6 +37,17 @@
             />
           </div>
 
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                v-model="rememberMe"
+                type="checkbox"
+                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span class="text-sm text-gray-600">Remember me</span>
+            </label>
+          </div>
+
           <div v-if="error" class="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
             {{ error }}
           </div>
@@ -67,8 +78,18 @@ const router = useRouter()
 
 const email = ref('')
 const password = ref('')
+const rememberMe = ref(true)
 const error = ref('')
 const loading = ref(false)
+
+// Check for saved email
+onMounted(() => {
+  const savedEmail = localStorage.getItem('fintracker_remember_email')
+  if (savedEmail) {
+    email.value = savedEmail
+    rememberMe.value = true
+  }
+})
 
 const handleLogin = async () => {
   loading.value = true
@@ -82,6 +103,12 @@ const handleLogin = async () => {
   if (err) {
     error.value = err.message
   } else {
+    // Save or clear remember me preference
+    if (rememberMe.value) {
+      localStorage.setItem('fintracker_remember_email', email.value)
+    } else {
+      localStorage.removeItem('fintracker_remember_email')
+    }
     router.push('/')
   }
 

@@ -190,11 +190,10 @@
 </template>
 
 <script setup>
-import { Chart, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
-import { Doughnut } from 'vue-chartjs'
+import { Chart, DoughnutController, BarController, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
 import { getCategoryIcon } from '~/composables/useUtils'
 
-Chart.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
+Chart.register(DoughnutController, BarController, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 
 definePageMeta({ middleware: 'auth' })
 
