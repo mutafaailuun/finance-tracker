@@ -446,7 +446,7 @@ const loadWalletHistory = async () => {
   
   const transactions = await getTransactions({ 
     month: historyMonth.value,
-    wallet_id: historyWallet.value.id 
+    walletId: historyWallet.value.id 
   })
   
   walletTransactions.value = transactions
