@@ -69,87 +69,73 @@
     <!-- Main content -->
     <div class="flex flex-col flex-1 overflow-hidden">
       <!-- Mobile header -->
-      <header class="md:hidden flex items-center justify-between h-14 px-4 bg-white border-b border-gray-100 shrink-0 shadow-sm">
+      <header class="md:hidden flex items-center justify-between h-12 px-3 bg-white border-b border-gray-100 shrink-0">
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 bg-gradient-to-br from-primary-400 to-primary-600 rounded-md flex items-center justify-center">
-            <LucideIcon name="trending-up" size="13" class="text-white" />
+          <div class="w-6 h-6 bg-gradient-to-br from-primary-400 to-primary-600 rounded-md flex items-center justify-center">
+            <LucideIcon name="trending-up" size="12" class="text-white" />
           </div>
-          <span class="text-lg font-bold text-gray-900 tracking-tight">FinTracker</span>
+          <span class="text-base font-bold text-gray-900 tracking-tight">FinTracker</span>
         </div>
         <NuxtLink
           to="/settings"
-          class="p-2 rounded-lg transition-colors"
+          class="p-1.5 rounded-lg transition-colors"
           :class="isActiveRoute('/settings') ? 'text-primary-600 bg-primary-50' : 'text-gray-500 hover:text-gray-700'"
         >
-          <LucideIcon name="settings" size="20" />
+          <LucideIcon name="settings" size="18" />
         </NuxtLink>
       </header>
 
       <!-- Page content -->
-      <main class="flex-1 overflow-y-auto p-4 md:p-8 pb-28 md:pb-8">
+      <main class="flex-1 overflow-y-auto p-3 md:p-8 pb-24 md:pb-8">
         <slot />
       </main>
 
-      <!-- Mobile Bottom Navigation Bar with Center AI Button -->
-      <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 pb-safe shadow-lg">
-        <!-- Left side items -->
-        <div class="flex items-center justify-between h-16 px-2">
+      <!-- Mobile Bottom Navigation Bar - Optimized for iPhone 13 Mini -->
+      <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg safe-area-bottom">
+        <div class="flex items-center justify-around h-14 px-1">
+          <!-- Main Nav Items -->
           <NuxtLink
-            v-for="item in leftNavigation"
+            v-for="item in mobileNavigation"
             :key="item.name"
             :to="item.href"
-            class="flex flex-col items-center justify-center py-2 px-1 min-w-[52px] rounded-xl transition-all"
+            class="flex flex-col items-center justify-center py-1 px-2 min-w-[44px] rounded-lg transition-all"
             :class="isActiveRoute(item.href)
               ? 'text-primary-600'
               : 'text-gray-400 hover:text-gray-600'"
           >
             <LucideIcon :name="item.icon" size="20" />
-            <span class="text-[9px] font-medium mt-0.5">{{ item.shortName }}</span>
+            <span class="text-[10px] font-medium mt-0.5 leading-tight">{{ item.shortName }}</span>
           </NuxtLink>
 
-          <!-- Center AI Button (Prominent) -->
+          <!-- AI Button (Compact) -->
           <NuxtLink
             to="/ai"
-            class="relative -mt-6 flex flex-col items-center justify-center"
+            class="flex flex-col items-center justify-center -mt-3"
           >
             <div
-              class="w-16 h-16 rounded-full flex items-center justify-center shadow-xl transition-all"
+              class="w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all"
               :class="isActiveRoute('/ai')
-                ? 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-orange-500/40 scale-105'
+                ? 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-orange-500/40'
                 : 'bg-gradient-to-br from-amber-400 to-orange-400 shadow-amber-500/40'"
             >
-              <LucideIcon name="bot" size="28" class="text-white" />
+              <LucideIcon name="bot" size="22" class="text-white" />
             </div>
             <span
-              class="text-[9px] font-medium mt-1"
+              class="text-[10px] font-medium mt-0.5"
               :class="isActiveRoute('/ai') ? 'text-amber-600' : 'text-gray-500'"
             >
               AI
             </span>
           </NuxtLink>
 
-          <!-- Right side items -->
-          <NuxtLink
-            v-for="item in rightNavigation"
-            :key="item.name"
-            :to="item.href"
-            class="flex flex-col items-center justify-center py-2 px-1 min-w-[52px] rounded-xl transition-all"
-            :class="isActiveRoute(item.href)
-              ? 'text-primary-600'
-              : 'text-gray-400 hover:text-gray-600'"
-          >
-            <LucideIcon :name="item.icon" size="20" />
-            <span class="text-[9px] font-medium mt-0.5">{{ item.shortName }}</span>
-          </NuxtLink>
-
           <!-- More Menu Button -->
           <button
             @click="showMoreMenu = true"
-            class="flex flex-col items-center justify-center py-2 px-1 min-w-[52px] rounded-xl transition-all"
+            class="flex flex-col items-center justify-center py-1 px-2 min-w-[44px] rounded-lg transition-all"
             :class="isMoreMenuActive ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'"
           >
             <LucideIcon name="menu" size="20" />
-            <span class="text-[9px] font-medium mt-0.5">More</span>
+            <span class="text-[10px] font-medium mt-0.5 leading-tight">More</span>
           </button>
         </div>
       </nav>
@@ -164,43 +150,43 @@
           />
           
           <!-- Menu Panel -->
-          <div class="absolute bottom-20 left-4 right-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
-            <div class="p-4 border-b border-gray-100">
+          <div class="absolute bottom-16 left-3 right-3 bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="p-3 border-b border-gray-100">
               <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-900">Menu</h3>
+                <h3 class="text-base font-semibold text-gray-900">Menu</h3>
                 <button 
                   @click="showMoreMenu = false"
-                  class="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  <LucideIcon name="x" size="20" class="text-gray-500" />
+                  <LucideIcon name="x" size="18" class="text-gray-500" />
                 </button>
               </div>
             </div>
             
-            <div class="p-2 max-h-[60vh] overflow-y-auto">
-              <div class="grid grid-cols-3 gap-2">
+            <div class="p-2 max-h-[50vh] overflow-y-auto">
+              <div class="grid grid-cols-4 gap-2">
                 <NuxtLink
                   v-for="item in moreMenuItems"
                   :key="item.name"
                   :to="item.href"
                   @click="showMoreMenu = false"
-                  class="flex flex-col items-center justify-center p-4 rounded-xl transition-all"
+                  class="flex flex-col items-center justify-center p-3 rounded-xl transition-all"
                   :class="isActiveRoute(item.href)
                     ? 'bg-primary-50 text-primary-600'
                     : 'text-gray-600 hover:bg-gray-50'"
                 >
-                  <LucideIcon :name="item.icon" size="24" />
-                  <span class="text-xs font-medium mt-2 text-center">{{ item.name }}</span>
+                  <LucideIcon :name="item.icon" size="20" />
+                  <span class="text-[10px] font-medium mt-1.5 text-center leading-tight">{{ item.name }}</span>
                 </NuxtLink>
               </div>
               
               <!-- Sign Out Button -->
-              <div class="mt-4 pt-4 border-t border-gray-100">
+              <div class="mt-3 pt-3 border-t border-gray-100">
                 <button
                   @click="handleSignOutFromMenu"
-                  class="flex items-center justify-center w-full gap-2 p-3 rounded-xl text-red-600 hover:bg-red-50 transition-all"
+                  class="flex items-center justify-center w-full gap-2 p-2.5 rounded-xl text-red-600 hover:bg-red-50 transition-all"
                 >
-                  <LucideIcon name="logout" size="20" />
+                  <LucideIcon name="logout" size="18" />
                   <span class="text-sm font-medium">Sign Out</span>
                 </button>
               </div>
@@ -219,24 +205,18 @@ const supabase = useSupabaseClient()
 
 const showMoreMenu = ref(false)
 
-// Split navigation for mobile with center AI button
-const leftNavigation = [
+// Mobile navigation - optimized for iPhone 13 Mini (375px width)
+// Simplified to 3 main items + AI + More
+const mobileNavigation = [
   { name: 'Dashboard', shortName: 'Home', href: '/', icon: 'dashboard' },
-  { name: 'Transactions', shortName: 'Trans.', href: '/transactions', icon: 'transactions' },
-]
-
-const rightNavigation = [
-  { name: 'Wallets', shortName: 'Wallets', href: '/wallets', icon: 'wallet' },
+  { name: 'Transactions', shortName: 'Trans', href: '/transactions', icon: 'transactions' },
+  { name: 'Wallets', shortName: 'Wallet', href: '/wallets', icon: 'wallet' },
 ]
 
 // All menu items for "More" section
 const moreMenuItems = [
-  { name: 'Dashboard', href: '/', icon: 'dashboard' },
-  { name: 'Transactions', href: '/transactions', icon: 'transactions' },
   { name: 'Budgets', href: '/budgets', icon: 'budgets' },
   { name: 'Categories', href: '/categories', icon: 'categories' },
-  { name: 'Wallets', href: '/wallets', icon: 'wallet' },
-  { name: 'AI Assistant', href: '/ai', icon: 'bot' },
   { name: 'Scanner', href: '/ocr', icon: 'scan-line' },
   { name: 'Settings', href: '/settings', icon: 'settings' },
 ]
@@ -262,10 +242,7 @@ const isActiveRoute = (href) => {
 }
 
 const isMoreMenuActive = computed(() => {
-  return moreMenuItems.some(item => isActiveRoute(item.href)) && 
-         !leftNavigation.some(item => isActiveRoute(item.href)) &&
-         !rightNavigation.some(item => isActiveRoute(item.href)) &&
-         !isActiveRoute('/ai')
+  return moreMenuItems.some(item => isActiveRoute(item.href))
 })
 
 const handleSignOut = async () => {
@@ -280,7 +257,14 @@ const handleSignOutFromMenu = async () => {
 </script>
 
 <style scoped>
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+}
+
+/* Optimize tap targets for mobile */
+@media (max-width: 375px) {
+  .min-w-\[44px\] {
+    min-width: 40px;
+  }
 }
 </style>
