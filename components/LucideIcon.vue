@@ -112,6 +112,8 @@ import {
   MapPin,
   Navigation,
   ScanLine,
+  MessageCircle,
+  Key,
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -252,7 +254,8 @@ const iconMap = {
   'location': MapPin,
   'navigation': Navigation,
   'scan-line': ScanLine,
-  'camera': Camera,
+  'message-circle': MessageCircle,
+  'key': Key,
 }
 
 const iconComponent = computed(() => {

@@ -215,8 +215,13 @@ const mobileNavigation = [
 
 // All menu items for "More" section
 const moreMenuItems = [
+  { name: 'Dashboard', href: '/', icon: 'dashboard' },
+  { name: 'Transactions', href: '/transactions', icon: 'transactions' },
   { name: 'Budgets', href: '/budgets', icon: 'budgets' },
   { name: 'Categories', href: '/categories', icon: 'categories' },
+  { name: 'Wallets', href: '/wallets', icon: 'wallet' },
+  { name: 'AI Assistant', href: '/ai', icon: 'bot' },
+  { name: 'WhatsApp', href: '/whatsapp', icon: 'message-circle' },
   { name: 'Scanner', href: '/ocr', icon: 'scan-line' },
   { name: 'Settings', href: '/settings', icon: 'settings' },
 ]
@@ -227,6 +232,7 @@ const mainNavigation = [
   { name: 'Budgets', shortName: 'Budgets', href: '/budgets', icon: 'budgets' },
   { name: 'Categories', shortName: 'Categ.', href: '/categories', icon: 'categories' },
   { name: 'Wallets', shortName: 'Wallets', href: '/wallets', icon: 'wallet' },
+  { name: 'WhatsApp', shortName: 'WA Bot', href: '/whatsapp', icon: 'message-circle' },
   { name: 'Receipt Scanner', shortName: 'Scan', href: '/ocr', icon: 'scan-line' },
 ]
 
