@@ -41,8 +41,38 @@
       </div>
     </div>
 
-    <!-- Transactions List -->
-    <div class="card">
+    <!-- View Mode Toggle -->
+    <div class="flex justify-end mb-4">
+      <div class="inline-flex bg-gray-100 rounded-lg p-1">
+        <button
+          @click="viewMode = 'list'"
+          :class="[
+            'px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5',
+            viewMode === 'list'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          ]"
+        >
+          <LucideIcon name="list" size="16" />
+          List
+        </button>
+        <button
+          @click="viewMode = 'daily'"
+          :class="[
+            'px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5',
+            viewMode === 'daily'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          ]"
+        >
+          <LucideIcon name="calendar-days" size="16" />
+          Daily Report
+        </button>
+      </div>
+    </div>
+
+    <!-- List View -->
+    <div v-if="viewMode === 'list'" class="card">
       <div v-if="transactions.length > 0" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
@@ -96,6 +126,92 @@
       <p v-else class="text-gray-400 text-center py-12">
         No transactions found. Click "Add Transaction" to get started.
       </p>
+    </div>
+
+    <!-- Daily Report View -->
+    <div v-else class="space-y-4">
+      <div v-if="dailyTransactions.length > 0">
+        <div
+          v-for="day in dailyTransactions"
+          :key="day.date"
+          class="card overflow-hidden"
+        >
+          <!-- Date Header -->
+          <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <LucideIcon name="calendar" size="16" class="text-gray-400" />
+              <span class="font-semibold text-gray-900">{{ formatDayHeader(day.date) }}</span>
+              <span class="text-sm text-gray-500">({{ day.transactions.length }} transaksi)</span>
+            </div>
+            <div class="flex items-center gap-3 text-sm">
+              <div v-if="day.income > 0" class="flex items-center gap-1">
+                <span class="text-gray-500">Income:</span>
+                <span class="font-medium text-green-600">+{{ formatCurrency(day.income, currency) }}</span>
+              </div>
+              <div v-if="day.expense > 0" class="flex items-center gap-1">
+                <span class="text-gray-500">Expense:</span>
+                <span class="font-medium text-red-600">-{{ formatCurrency(day.expense, currency) }}</span>
+              </div>
+              <div class="border-l border-gray-300 pl-3">
+                <span
+                  class="font-semibold"
+                  :class="day.net >= 0 ? 'text-green-600' : 'text-red-600'"
+                >
+                  {{ day.net >= 0 ? '+' : '-' }}{{ formatCurrency(Math.abs(day.net), currency) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transactions for this day -->
+          <div class="divide-y divide-gray-100">
+            <div
+              v-for="tx in day.transactions"
+              :key="tx.id"
+              class="px-4 py-3 hover:bg-gray-50 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-10 h-10 rounded-full flex items-center justify-center"
+                  :style="{ backgroundColor: tx.categories?.color ? tx.categories.color + '20' : '#f3f4f6' }"
+                >
+                  <LucideIcon
+                    :name="tx.categories?.icon || 'wallet'"
+                    size="18"
+                    :style="{ color: tx.categories?.color || '#6b7280' }"
+                  />
+                </div>
+                <div>
+                  <p class="font-medium text-gray-900">{{ tx.categories?.name || 'Uncategorized' }}</p>
+                  <p class="text-sm text-gray-500">
+                    {{ tx.wallets?.name || 'No Wallet' }}
+                    <span v-if="tx.description" class="text-gray-400">• {{ tx.description }}</span>
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span
+                  class="font-semibold"
+                  :class="tx.type === 'income' ? 'text-green-600' : 'text-red-600'"
+                >
+                  {{ tx.type === 'income' ? '+' : '-' }}{{ formatCurrency(tx.amount, currency) }}
+                </span>
+                <button @click="openEditModal(tx)" class="text-gray-400 hover:text-primary-600 p-1 ml-2">
+                  <LucideIcon name="edit" size="14" />
+                </button>
+                <button @click="confirmDelete(tx)" class="text-gray-400 hover:text-red-600 p-1">
+                  <LucideIcon name="trash" size="14" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="card">
+        <p class="text-gray-400 text-center py-12">
+          No transactions found. Click "Add Transaction" to get started.
+        </p>
+      </div>
     </div>
 
     <!-- Add/Edit Modal -->
@@ -307,6 +423,7 @@ const editingTransaction = ref(null)
 const deleteTarget = ref(null)
 const formError = ref('')
 const saving = ref(false)
+const viewMode = ref('list') // 'list' or 'daily'
 
 const form = reactive({
   type: 'expense',
@@ -333,6 +450,59 @@ const filteredCategories = computed(() => {
     ? categories.value.filter((c) => c.type === form.type)
     : categories.value
 })
+
+// Daily report computed property
+const dailyTransactions = computed(() => {
+  const grouped = {}
+
+  transactions.value.forEach((tx) => {
+    if (!grouped[tx.date]) {
+      grouped[tx.date] = {
+        date: tx.date,
+        transactions: [],
+        income: 0,
+        expense: 0,
+        net: 0,
+      }
+    }
+    grouped[tx.date].transactions.push(tx)
+    if (tx.type === 'income') {
+      grouped[tx.date].income += tx.amount
+    } else {
+      grouped[tx.date].expense += tx.amount
+    }
+    grouped[tx.date].net = grouped[tx.date].income - grouped[tx.date].expense
+  })
+
+  // Sort by date descending
+  return Object.values(grouped).sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  )
+})
+
+const formatDayHeader = (dateStr) => {
+  const date = new Date(dateStr + 'T00:00:00')
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  // Check if it's today
+  if (date.toDateString() === today.toDateString()) {
+    return 'Today'
+  }
+  // Check if it's yesterday
+  if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday'
+  }
+
+  // Otherwise return formatted date
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
 
 const loadData = async () => {
   const [cats, wals, txs] = await Promise.all([

@@ -3,6 +3,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss', '@nuxtjs/supabase', '@vite-pwa/nuxt'],
   css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    public: {
+      supabaseUrl: process.env.SUPABASE_URL
+    }
+  },
   supabase: {
     redirectOptions: {
       login: '/auth/login',

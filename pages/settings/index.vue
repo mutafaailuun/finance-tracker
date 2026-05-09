@@ -147,6 +147,7 @@
           </p>
           <ul class="text-sm text-gray-600 list-disc list-inside space-y-1">
             <li>"Hey Siri, catat pengeluaran"</li>
+            <li>📸 Scan struk belanja (OCR)</li>
             <li>Widget di home screen</li>
             <li>Share dari app lain</li>
             <li>Back tap trigger</li>
@@ -170,19 +171,22 @@
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">Your API Key</label>
               <div class="flex gap-2">
-                <input 
+                <input
+                  :key="showShortcutKey"
                   :value="shortcutApiKey"
                   readonly
                   class="input-field bg-gray-100 text-gray-600"
-                  type="password"
+                  :type="showShortcutKey ? 'text' : 'password'"
                 />
-                <button 
+                <button
+                  type="button"
                   @click="showShortcutKey = !showShortcutKey"
                   class="btn-secondary"
                 >
                   <LucideIcon :name="showShortcutKey ? 'eye-off' : 'eye'" size="16" />
                 </button>
-                <button 
+                <button
+                  type="button"
                   @click="copyShortcutKey"
                   class="btn-secondary"
                 >
@@ -210,6 +214,20 @@
               >
                 Regenerate
               </button>
+            </div>
+
+            <div class="p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-100">
+              <p class="text-xs text-purple-700 font-medium mb-2 flex items-center gap-1">
+                <LucideIcon name="camera" size="14" />
+                Fitur Baru: OCR Scan Struk
+              </p>
+              <p class="text-xs text-purple-600 mb-2">
+                Scan struk belanja langsung dari kamera, otomatis tercatat dengan merchant, total, dan tanggal.
+              </p>
+              <NuxtLink to="/docs/IOS_SHORTCUT_OCR_QUICK.md" target="_blank" class="text-xs text-purple-700 font-medium hover:underline inline-flex items-center gap-1">
+                Panduan Setup OCR
+                <LucideIcon name="arrow-right" size="12" />
+              </NuxtLink>
             </div>
           </div>
 
@@ -268,14 +286,15 @@ const availableCurrencies = [
   { code: 'PHP', name: 'Philippine Peso' },
 ]
 
-// Load preferences on mount
 onMounted(async () => {
   await getPreferences()
   if (preferences.value) {
     currencyForm.currency = preferences.value.currency
+    if (preferences.value.shortcut_api_key) {
+      shortcutApiKey.value = preferences.value.shortcut_api_key
+    }
   }
-  
-  // Load AI config from localStorage
+
   const savedAIConfig = localStorage.getItem('ai_config')
   if (savedAIConfig) {
     const config = JSON.parse(savedAIConfig)
@@ -337,22 +356,12 @@ const shortcutApiKey = ref('')
 const showShortcutKey = ref(false)
 const generatingKey = ref(false)
 const keySuccess = ref('')
+const config = useRuntimeConfig()
 const shortcutEndpoint = computed(() => {
-  // Get project ref from Supabase URL
-  const projectRef = 'your-project-ref' // Replace with actual
-  return `https://${projectRef}.supabase.co/functions/v1/ios-shortcut`
+  const supabaseUrl = config.public.supabaseUrl || process.env.SUPABASE_URL
+  if (!supabaseUrl) return 'https://your-project-ref.supabase.co/functions/v1/ios-shortcut'
+  return `${supabaseUrl.replace(/\/$/, '')}/functions/v1/ios-shortcut`
 })
-
-const loadShortcutKey = async () => {
-  const { data } = await supabase
-    .from('user_preferences')
-    .select('shortcut_api_key')
-    .single()
-  
-  if (data?.shortcut_api_key) {
-    shortcutApiKey.value = data.shortcut_api_key
-  }
-}
 
 const generateShortcutKey = async () => {
   generatingKey.value = true
@@ -392,8 +401,4 @@ const copyShortcutKey = () => {
   setTimeout(() => keySuccess.value = '', 2000)
 }
 
-// Load shortcut key on mount
-onMounted(async () => {
-  await loadShortcutKey()
-})
 </script>
